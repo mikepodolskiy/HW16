@@ -89,13 +89,61 @@ class Offer(db.Model):
         }
 
 
+# creating function to add data to db
+def init_db():
+    # starting session
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+
+        # creating new users within list from file and adding to db
+        for user in users.users:
+            new_user = User(
+                id=user["id"],
+                first_name=user["first_name"],
+                last_name=user["last_name"],
+                age=user["age"],
+                email=user["email"],
+                role=user["role"],
+                phone=user["phone"]
+            )
+            db.session.add(new_user)
+
+        # creating new orders within list from file and adding to db
+        for order in orders.orders:
+            new_order = Order(
+                id=order["id"],
+                name=order["name"],
+                description=order["description"],
+                start_date=order["start_date"],
+                end_date=order["end_date"],
+                address=order["address"],
+                price=order["price"],
+                customer_id=order["customer_id"],
+                executor_id=order["executor_id"]
+            )
+            db.session.add(new_order)
+
+        # creating new offers within list from file and adding to db
+        for offer in offers.offers:
+            new_offer = Offer(
+                id=offer["id"],
+                order_id=offer["order_id"],
+                executor_id=offer["executor_id"]
+            )
+            db.session.add(new_offer)
+            db.session.commit()
+
+
 # creating views
 
 # view for all users
 @app.route('/users/', methods=['GET', 'POST'])
 def get_users():
     """
-    on GET: making request to each element in data list, and applying to_dict method, putting all results in the list, and returns as json.dumps
+    for 'GET': making request to each element in data list, and applying to_dict method, putting all results in the
+    list, and returns as json. dumps
+    for 'POST' request creating user from json from request data as class object, add new user to db, returns info
     """
     if request.method == 'GET':
         result = [user.to_dict() for user in User.query.all()]
@@ -120,11 +168,15 @@ def get_users():
 @app.route('/users/<int:uid>', methods=['GET', 'PUT', 'DELETE'])
 def get_user(uid):
     """
-    request to data by id, applying to_dict method, return dict
+    For 'GET' request - making request to data by id, applying to_dict method, return dict
+    For 'PUT' request - update fields of object with data from json of request add all data except id to db,
+    returns info
+    For 'DELETE' request - making request to data by id, applying a delete method to user, returns info
     """
     if request.method == 'GET':
         result = User.query.get(uid).to_dict()
         return result
+
     elif request.method == 'PUT':
         user_data = json.loads(request.data)
         upd_user = User.query.get(uid)
@@ -151,94 +203,125 @@ def get_user(uid):
 @app.route('/orders/', methods=['GET', 'POST'])
 def get_orders():
     """
-    making request to each element in data list, and applying to_dict method, putting all
+    for 'GET' request - making request to each element in data list, and applying to_dict method, putting all
     results in the list, and returns as json. dumps
+    for 'POST' request -  creating order from json from request data as class object, add new order to db, returns info
     """
     if request.method == 'GET':
         result = [order.to_dict() for order in Order.query.all()]
         return json.dumps(result)
 
+    elif request.method == 'POST':
+        order_data = json.loads(request.data)
+        new_order = Order(
+            id=order_data["id"],
+            name=order_data["name"],
+            description=order_data["description"],
+            start_date=order_data["start_date"],
+            end_date=order_data["end_date"],
+            address=order_data["address"],
+            price=order_data["price"],
+            customer_id=order_data["customer_id"],
+            executor_id=order_data["executor_id"]
+        )
+        db.session.add(new_order)
+        db.session.commit()
+        return 'ORDER ADDED'
+
 
 # view for one order
-@app.route('/orders/<int:oid>', methods=['GET', 'POST'])
+@app.route('/orders/<int:oid>', methods=['GET', 'PUT', 'DELETE'])
 def get_order(oid):
     """
-    request to data by id, applying to_dict method, return dict
+    For 'GET' request - making request to data by id, applying to_dict method, return dict
+    For 'PUT' request - update fields of object with data from json of request add all data except id to db,
+    returns info
+    For 'DELETE' request - making request to data by id, applying a delete method to order, returns info
     """
     if request.method == 'GET':
         result = Order.query.get(oid).to_dict()
         return result
+
+    elif request.method == 'PUT':
+        order_data = json.loads(request.data)
+        upd_order = Order.query.get(oid)
+        upd_order.name = order_data["name"]
+        upd_order.description = order_data["description"]
+        upd_order.start_date = order_data["start_date"]
+        upd_order.end_date = order_data["end_date"]
+        upd_order.address = order_data["address"]
+        upd_order.price = order_data["price"]
+        upd_order.customer_id = order_data["customer_id"]
+        upd_order.executor_id = order_data["executor_id"]
+
+        db.session.add(upd_order)
+        db.session.commit()
+        return 'ORDER UPDATED'
+
+    elif request.method == 'DELETE':
+
+        del_order = Order.query.get(oid)
+
+        db.session.delete(del_order)
+        db.session.commit()
+        return 'ORDER DELETED'
 
 
 # view for all offers
 @app.route('/offers/', methods=['GET', 'POST'])
 def get_offers():
     """
-    making request to each element in data list, and applying to_dict method, putting all
+    for 'GET' request - making request to each element in data list, and applying to_dict method, putting all
     results in the list, and returns as json. dumps
+    for 'POST' request -  creating offer from json from request data as class object, add new offer to db, returns info
     """
     if request.method == 'GET':
         result = [offer.to_dict() for offer in Offer.query.all()]
         return json.dumps(result)
 
+    elif request.method == 'POST':
+        offer_data = json.loads(request.data)
+        new_offer = Offer(
+            id=offer_data["id"],
+            order_id=offer_data["order_id"],
+            executor_id=offer_data["executor_id"],
 
-# view for one offer
-@app.route('/offers/<int:oid>', methods=['GET', 'POST'])
+        )
+        db.session.add(new_offer)
+        db.session.commit()
+        return 'OFFER ADDED'
+
+
+# views for one offer
+@app.route('/offers/<int:oid>', methods=['GET', 'PUT', 'DELETE'])
 def get_offer(oid):
     """
-    request to data by id, applying to_dict method, return dict
+    For 'GET' request - making request to data by id, applying to_dict method, return dict
+    For 'PUT' request - update fields of object with data from json of request, add all data except id to db,
+    returns info
+    For 'DELETE' request - making request to data by id, applying a delete method to offer, returns info
     """
     if request.method == 'GET':
         result = Offer.query.get(oid).to_dict()
         return result
 
+    elif request.method == 'PUT':
+        offer_data = json.loads(request.data)
+        upd_offer = Offer.query.get(oid)
+        upd_offer.order_id = offer_data["order_id"]
+        upd_offer.executor_id = offer_data["executor_id"]
 
-# creating function to add data to db
-def init_db():
-    # starting session
-    with app.app_context():
-        db.drop_all()
-        db.create_all()
+        db.session.add(upd_offer)
+        db.session.commit()
+        return 'OFFER UPDATED'
 
-        # creating new users within list from file and adding to db
-        for user in users.users:
-            new_user = User(
-                id=user["id"],
-                first_name=user["first_name"],
-                last_name=user["last_name"],
-                age=user["age"],
-                email=user["email"],
-                role=user["role"],
-                phone=user["phone"]
-            )
-            db.session.add(new_user)
-            db.session.commit()
+    elif request.method == 'DELETE':
 
-        # creating new orders within list from file and adding to db
-        for order in orders.orders:
-            new_order = Order(
-                id=order["id"],
-                name=order["name"],
-                description=order["description"],
-                start_date=order["start_date"],
-                end_date=order["end_date"],
-                address=order["address"],
-                price=order["price"],
-                customer_id=order["customer_id"],
-                executor_id=order["executor_id"]
-            )
-            db.session.add(new_order)
-            db.session.commit()
+        del_offer = Offer.query.get(oid)
 
-        # creating new offers within list from file and adding to db
-        for offer in offers.offers:
-            new_offer = Offer(
-                id=offer["id"],
-                order_id=offer["order_id"],
-                executor_id=offer["executor_id"]
-            )
-            db.session.add(new_offer)
-            db.session.commit()
+        db.session.delete(del_offer)
+        db.session.commit()
+        return 'USER DELETED'
 
 
 if __name__ == "__main__":
