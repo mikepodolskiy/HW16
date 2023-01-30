@@ -321,7 +321,7 @@ def get_offer(oid):
 
         db.session.delete(del_offer)
         db.session.commit()
-        return 'USER DELETED'
+        return 'OFFER DELETED'
 
 
 if __name__ == "__main__":
